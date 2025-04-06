@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-
+from django.conf import settings
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -12,17 +12,18 @@ class CustomUser(AbstractUser):
         ('author', 'Author'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    publisher = models.ForeignKey('self', related_name='authors', on_delete=models.SET_NULL, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.pk:  # New user being created
             self.is_staff = True
+        if self.role == 'author' and not self.publisher:
+            raise ValueError("Author must be assigned to a publisher.")
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.username} ({self.role})"
 
-
-from django.conf import settings
 
 class UploadedFile(models.Model):
     file = models.FileField(upload_to="uploads/")

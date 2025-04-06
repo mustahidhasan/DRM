@@ -21,6 +21,8 @@ class UploadedFileAdmin(admin.ModelAdmin):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
+        elif request.user.role == 'publisher':
+            return qs.filter(user__publisher=request.user)
         return qs.filter(user=request.user)
 
     def save_model(self, request, obj, form, change):
@@ -48,30 +50,30 @@ class UploadedFileAdmin(admin.ModelAdmin):
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
-        ('Role Info', {'fields': ('role',)}),
+        ('Role Info', {'fields': ('role', 'publisher')}),
     )
-    list_display = ['username', 'email', 'role', 'is_staff']
+    list_display = ['username', 'email', 'role', 'publisher', 'is_staff']
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_superuser:
             return qs
         elif request.user.role == 'publisher':
-            return qs.filter(role='author')
+            return qs.filter(publisher=request.user)
         return qs.none()
 
     def has_view_permission(self, request, obj=None):
         if request.user.is_superuser:
             return True
         if request.user.role == 'publisher':
-            return obj is None or obj.role == 'author'
+            return obj is None or obj.publisher == request.user
         return False
 
     def has_change_permission(self, request, obj=None):
         if request.user.is_superuser:
             return True
         if request.user.role == 'publisher':
-            return obj is None or obj.role == 'author'
+            return obj is None or obj.publisher == request.user
         return False
 
     def has_delete_permission(self, request, obj=None):
@@ -84,29 +86,21 @@ class CustomUserAdmin(UserAdmin):
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
-        if request.user.role == 'publisher' and 'role' in form.base_fields:
-            form.base_fields['role'].widget.choices = [('author', 'Author')]
+        if request.user.role == 'publisher':
+            form.base_fields['publisher'].widget.choices = [(request.user.id, request.user.username)]
             if not obj:
-                form.base_fields['role'].initial = 'author'
-                form.base_fields['role'].widget.attrs['readonly'] = 'readonly'
+                form.base_fields['publisher'].initial = request.user
+                form.base_fields['publisher'].widget.attrs['readonly'] = 'readonly'
         return form
 
     def save_model(self, request, obj, form, change):
         is_new = obj.pk is None
-
-        # Set flags based on role
-        if request.user.role == 'publisher':
-            obj.role = 'author'
-        elif request.user.is_superuser and obj.role == 'super_admin':
-            obj.is_superuser = True
-            obj.is_staff = True
-
-        # Save the user to get a primary key
+        if request.user.role == 'publisher' and not obj.publisher:
+            obj.publisher = request.user
         super().save_model(request, obj, form, change)
-
-        # Ensure m2m relations are set up
         form.save_m2m()
-
+        
+        # Ensure m2m relations are set up
         # Assign UploadedFile permissions
         content_type = ContentType.objects.get_for_model(UploadedFile)
         perms_to_assign = ['add_uploadedfile', 'change_uploadedfile', 'delete_uploadedfile', 'view_uploadedfile']
