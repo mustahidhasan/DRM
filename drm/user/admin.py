@@ -8,7 +8,7 @@ from .models import UploadedFile, CustomUser
 
 @admin.register(UploadedFile)
 class UploadedFileAdmin(admin.ModelAdmin):
-    list_display = ['file', 'user', 'uploaded_at', 'is_archieved']
+    list_display = ['book_name','book_description','file', 'user', 'uploaded_at', 'is_archieved']
     exclude = ['user']  # Hide user field from form
 
     def get_form(self, request, obj=None, **kwargs):

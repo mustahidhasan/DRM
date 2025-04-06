@@ -28,6 +28,8 @@ class UploadedFile(models.Model):
     file = models.FileField(upload_to="uploads/")
     uploaded_at = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    book_name = models.CharField(max_length=200, blank=True, null=True)
+    book_description = models.TextField(max_length=400, blank=True, null=True)
     file_created_at = models.DateTimeField(auto_now=True)
     is_archieved = models.BooleanField(default=False)
 
