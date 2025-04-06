@@ -9,6 +9,20 @@ from .models import UploadedFile, CustomUser
 @admin.register(UploadedFile)
 class UploadedFileAdmin(admin.ModelAdmin):
     list_display = ['file', 'user', 'uploaded_at', 'is_archieved']
+    exclude = ['user']  # Hide user field from form
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        if not request.user.is_superuser:
+            if 'user' in form.base_fields:
+                del form.base_fields['user']
+        return form
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        return qs.filter(user=request.user)  # Only return files of logged-in user
 
     def save_model(self, request, obj, form, change):
         if not request.user.is_superuser:
@@ -16,21 +30,27 @@ class UploadedFileAdmin(admin.ModelAdmin):
 
             if role == 'publisher':
                 obj.user = request.user
-                super().save_model(request, obj, form, change)
 
             elif role == 'author':
                 count = UploadedFile.objects.filter(user=request.user).count()
                 if count >= 10:
-                    self.message_user(request, "Authors can upload a maximum of 10 books.", level=messages.ERROR)
+                    self.message_user(
+                        request,
+                        "Authors can upload a maximum of 10 books.",
+                        level=messages.ERROR
+                    )
                     return
                 obj.user = request.user
-                super().save_model(request, obj, form, change)
 
             else:
                 self.message_user(request, "Access denied.", level=messages.ERROR)
+                return
         else:
-            super().save_model(request, obj, form, change)
+            # Optional: default superuser's uploads to themselves if user isn't set
+            if not obj.user_id:
+                obj.user = request.user
 
+        super().save_model(request, obj, form, change)
 
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
