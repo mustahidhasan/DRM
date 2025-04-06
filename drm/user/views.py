@@ -17,57 +17,6 @@ from django.contrib.auth.models import User
 
 def home(request):
     # Handle Login with JWT Token
-    if "token" in request.GET:
-        token = request.GET["token"]
-        print("JWT Token received:", token)
-
-        try:
-            # Decode JWT token using SECRET_KEY from settings.py
-            payload = jwt.decode(
-                token, SECRET_KEY, algorithms=["HS256"], options={"verify_aud": False}
-            )
-            print("Decoded payload:", payload)
-
-            # Check if token has expired
-            exp = datetime.datetime.utcfromtimestamp(payload["exp"])
-            current_time = datetime.datetime.utcnow()
-
-            if exp < current_time:
-                messages.error(request, "Token has expired. Please log in again.")
-                return redirect("home")
-
-            # Extract email (sub) from token payload
-            user_email = payload["sub"]
-
-            # Try to find the user based on the email provided in the token
-            user = EmailOrUsernameBackend.authenticate(self=None, request=None, username=user_email)
-            print("user", user)
-            if user:
-                # Manually set the backend for the user
-                user.backend = "user.auth_backend.EmailOrUsernameBackend"
-                login(request, user)
-                messages.success(request, "You have been logged in with token!")
-
-                # Store token and expiration time in session
-                request.session["jwt_token"] = token
-                request.session["jwt_expiration"] = exp.strftime("%Y-%m-%d %H:%M:%S")
-                request.session["jwt_payload"] = payload
-
-                return redirect("home")
-            else:
-                messages.error(request, "User not found!")
-
-        except jwt.ExpiredSignatureError:
-            messages.error(request, "Token has expired. Please log in again.")
-        except jwt.InvalidTokenError:
-            messages.error(request, "Invalid token. Please try again.")
-        except jwt.InvalidAudienceError:
-            messages.error(request, "Invalid audience in token.")
-        except Exception as e:
-            messages.error(request, f"Error processing token: {str(e)}")
-
-        return redirect("home")
-    
     if request.method == "POST":
 
         # Handle traditional username and password login (if no JWT token is provided)
