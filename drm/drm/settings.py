@@ -68,6 +68,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "drm.urls"
 
+AUTH_USER_MODEL = 'user.CustomUser'
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
