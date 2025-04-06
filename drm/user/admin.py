@@ -52,6 +52,10 @@ class UploadedFileAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from .models import CustomUser
+
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
@@ -59,26 +63,58 @@ class CustomUserAdmin(UserAdmin):
     )
     list_display = ['username', 'email', 'role', 'is_staff']
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs  # Super admin can see all users
+        elif request.user.role == 'publisher':
+            return qs.filter(role='author')  # Publishers can only see authors
+        return qs.none()  # Authors can't see any users (except their own)
+
+    def has_view_permission(self, request, obj=None):
+        # Check view permissions based on the user's role
+        if request.user.is_superuser:
+            return True
+        if request.user.role == 'publisher':
+            return obj is None or obj.role == 'author'
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        # Check change permissions
+        if request.user.is_superuser:
+            return True
+        if request.user.role == 'publisher':
+            return obj is None or obj.role == 'author'  # Publishers can only modify authors
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        # Check delete permissions
+        return self.has_change_permission(request, obj)
+
+    def has_add_permission(self, request):
+        # Publishers can add new authors, and they can set the role as 'author'
+        if request.user.is_superuser:
+            return True
+        return request.user.role == 'publisher'  # Publishers can only add authors
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+
+        # If the logged-in user is a publisher, restrict the role field to 'author'
+        if request.user.role == 'publisher':
+            if 'role' in form.base_fields:
+                # Allow publisher to select the 'author' role for the user
+                form.base_fields['role'].widget.choices = [('author', 'Author')]  # Only allow 'author' role
+                if not obj:  # If it's a new user being created
+                    form.base_fields['role'].initial = 'author'  # Automatically set the role to 'author'
+                    form.base_fields['role'].widget.attrs['readonly'] = 'readonly'  # Make the role field read-only
+
+        return form
+
     def save_model(self, request, obj, form, change):
-        is_new = obj.pk is None
+        if request.user.role == 'publisher':
+            # Ensure that the role is 'author' for any new user created by a publisher
+            if obj.role != 'author':  # Prevent role other than 'author' from being set
+                obj.role = 'author'
+
         super().save_model(request, obj, form, change)
-
-        # Assign UploadedFile model permissions based on role
-        content_type = ContentType.objects.get_for_model(UploadedFile)
-        uploadedfile_perms = Permission.objects.filter(content_type=content_type)
-
-        # Remove previous UploadedFile perms
-        obj.user_permissions.remove(*uploadedfile_perms)
-
-        if obj.role in ['publisher', 'author']:
-            perms_to_assign = ['add_uploadedfile', 'view_uploadedfile']
-            for codename in perms_to_assign:
-                try:
-                    perm = Permission.objects.get(codename=codename, content_type=content_type)
-                    obj.user_permissions.add(perm)
-                except Permission.DoesNotExist:
-                    pass
-
-        elif obj.role == 'super_admin':
-            for perm in uploadedfile_perms:
-                obj.user_permissions.add(perm)

@@ -11,7 +11,7 @@ class CustomUser(AbstractUser):
         ('publisher', 'Publisher'),
         ('author', 'Author'),
     ]
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='super_admin')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
 
     def save(self, *args, **kwargs):
         if not self.pk:  # New user being created
