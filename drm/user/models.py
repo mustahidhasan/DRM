@@ -11,11 +11,15 @@ class CustomUser(AbstractUser):
         ('publisher', 'Publisher'),
         ('author', 'Author'),
     ]
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='author')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='super_admin')
+
+    def save(self, *args, **kwargs):
+        if not self.pk:  # New user being created
+            self.is_staff = True
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.username} ({self.role})"
-
 
 
 from django.conf import settings
