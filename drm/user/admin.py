@@ -93,28 +93,27 @@ class CustomUserAdmin(UserAdmin):
 
     def save_model(self, request, obj, form, change):
         is_new = obj.pk is None
+
+        # Set flags based on role
         if request.user.role == 'publisher':
             obj.role = 'author'
         elif request.user.is_superuser and obj.role == 'super_admin':
             obj.is_superuser = True
             obj.is_staff = True
 
+        # Save the user to get a primary key
         super().save_model(request, obj, form, change)
+
+        # Ensure m2m relations are set up
+        form.save_m2m()
 
         # Assign UploadedFile permissions
         content_type = ContentType.objects.get_for_model(UploadedFile)
-        uploadedfile_perms = Permission.objects.filter(content_type=content_type)
-        obj.user_permissions.remove(*uploadedfile_perms)
+        perms_to_assign = ['add_uploadedfile', 'change_uploadedfile', 'delete_uploadedfile', 'view_uploadedfile']
 
-        if obj.role in ['publisher', 'author']:
-            perms_to_assign = ['add_uploadedfile', 'change_uploadedfile', 'delete_uploadedfile', 'view_uploadedfile']
-            for codename in perms_to_assign:
-                try:
-                    perm = Permission.objects.get(codename=codename, content_type=content_type)
-                    obj.user_permissions.add(perm)
-                except Permission.DoesNotExist:
-                    pass
-
-        elif obj.role == 'super_admin':
-            for perm in uploadedfile_perms:
+        for codename in perms_to_assign:
+            try:
+                perm = Permission.objects.get(codename=codename, content_type=content_type)
                 obj.user_permissions.add(perm)
+            except Permission.DoesNotExist:
+                pass
