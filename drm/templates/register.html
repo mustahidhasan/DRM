@@ -1,3 +1,7 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
 <div class="register-container">
     <form method="post" class="register-form">
       {% csrf_token %}
@@ -26,7 +30,6 @@
       justify-content: center;
       align-items: center;
       min-height: 95vh;
-      background: linear-gradient(to right, #002147, #4fa7ff);
     }
   
     .register-form {
@@ -93,4 +96,4 @@
       text-decoration: underline;
     }
   </style>
-  
+{% endblock %}

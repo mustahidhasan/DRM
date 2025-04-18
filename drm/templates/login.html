@@ -1,3 +1,7 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
 <div class="login-container">
     <form method="post" class="login-form">
       {% csrf_token %}
@@ -22,7 +26,6 @@
       justify-content: center;
       align-items: center;
       min-height: 90vh;
-      background: linear-gradient(to right, #002147, #4fa7ff);
     }
   
     .login-form {
@@ -89,4 +92,4 @@
       text-decoration: underline;
     }
   </style>
-  
+{% endblock %}
