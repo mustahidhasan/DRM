@@ -107,4 +107,4 @@ def login_view(request):
     return render(request, "login.html")
 
 def profile_view(request):
-    pass
+    return render(request, "profile.html")
