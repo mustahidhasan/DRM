@@ -46,7 +46,8 @@
                     <button class="btn btn-warning btn-sm add-to-cart-btn"
                         data-id="{{ book.id }}"
                         data-name="{{ book.book_name }}"
-                        data-price="{{ book.price|default:0.00 }}">
+                        data-price="{{ book.price|default:0.00 }}"
+                        data-file="{{ book.file.name }}">
                         Add to Cart
                     </button>
                 </div>
