@@ -28,6 +28,10 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator  # If you use class-based views
+from django.shortcuts import render
 
 # Use the custom user model
 User = get_user_model()
@@ -38,9 +42,13 @@ def home(request):
 
     return render(request, "home.html",  {'books': books})
 
-@csrf_exempt  # For demo purposes only. In production, handle CSRF properly.
+
+
+@login_required(login_url='login')  # Redirects to login page if not logged in
+@csrf_exempt  # Only use this if you absolutely need to disable CSRF
 def checkout_view(request):
     return render(request, 'checkout.html')
+
 
 def logout_user(request):
     logout(request)
