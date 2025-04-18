@@ -14,12 +14,16 @@ import datetime
 from drm.settings import SECRET_KEY
 from user.auth_backend import EmailOrUsernameBackend
 from django.contrib.auth.models import User
+from django.views.decorators.csrf import csrf_exempt
 
 def home(request):
     books = UploadedFile.objects.filter(is_archieved=False).order_by('-uploaded_at')
 
     return render(request, "home.html",  {'books': books})
 
+@csrf_exempt  # For demo purposes only. In production, handle CSRF properly.
+def checkout_view(request):
+    return render(request, 'checkout.html')
 
 def logout_user(request):
     logout(request)
