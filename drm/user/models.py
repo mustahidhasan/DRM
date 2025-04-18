@@ -31,8 +31,10 @@ class UploadedFile(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     book_name = models.CharField(max_length=200, blank=True, null=True)
     book_description = models.TextField(max_length=400, blank=True, null=True)
+    cover_image = models.ImageField(upload_to='book_covers/', blank=True, null=True)  # <-- Added field
     file_created_at = models.DateTimeField(auto_now=True)
     is_archieved = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.file.name
+        return self.book_name or self.file.name
+
