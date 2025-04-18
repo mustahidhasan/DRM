@@ -92,6 +92,18 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.utils.html import escape  # To prevent HTML injection if username is echoed
 
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from rest_framework_simplejwt.tokens import RefreshToken
+
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
 def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
@@ -100,7 +112,7 @@ def login_view(request):
         if not username or not password:
             messages.error(request, "Both username and password are required.")
             return render(request, "login.html", {
-                "username": escape(username)
+                "username": username
             })
 
         user = authenticate(request, username=username, password=password)
@@ -108,19 +120,25 @@ def login_view(request):
         if user is not None:
             if user.role == 'customer':
                 login(request, user)
+                tokens = get_tokens_for_user(user)
+
+                # Optionally store tokens in session
+                request.session['access_token'] = tokens['access']
+                request.session['refresh_token'] = tokens['refresh']
+
                 messages.success(request, f"Welcome back, {user.username}!")
-                return redirect('home')  # Replace with your customer dashboard route
+                return redirect('home')  # Redirect to customer dashboard or home
             else:
                 messages.error(request, "Only customers can log in from here.")
         else:
             messages.error(request, "Invalid username or password.")
 
-        # On failure: re-render login form with error and pre-filled username
         return render(request, "login.html", {
-            "username": escape(username),
+            "username": username,
         })
 
     return render(request, "login.html")
+
 
 
 def profile_view(request):
