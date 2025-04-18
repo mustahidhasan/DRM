@@ -46,7 +46,7 @@ JAZZMIN_SETTINGS = {
     "site_title": "DRM Admin",
     "site_header": "DRM",
     "site_brand": "DRM",
-    "welcome_sign": "Welcome to DRM Admin",
+    "welcome_sign": "Welcome to DRM",
     "topmenu_links": [
         {"name": "Home", "url": "/", "icon": "fa fa-home"},
         {"name": "Logout", "url": "/logout", "icon": "fa fa-sign-out-alt"},
@@ -55,6 +55,9 @@ JAZZMIN_SETTINGS = {
     "default_icon_parents": "fa fa-folder",
     "default_icon_children": "fa fa-file",
 }
+# settings.py
+LOGIN_REDIRECT_URL = '/admin/'
+
 MIDDLEWARE = [
     # "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
