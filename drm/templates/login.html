@@ -1,7 +1,92 @@
-<form method="post">
-    {% csrf_token %}
-    <input type="text" name="username" placeholder="Username" required><br>
-    <input type="password" name="password" placeholder="Password" required><br>
-    <button type="submit">Login</button>
-    <span>Do not have an account</span><a href="{% url 'register' %}">Create Account</a>
-</form>
+<div class="login-container">
+    <form method="post" class="login-form">
+      {% csrf_token %}
+      <h2 class="form-title">Login</h2>
+  
+      <input type="text" name="username" placeholder="Username" required class="form-control">
+      <input type="password" name="password" placeholder="Password" required class="form-control">
+  
+      <button type="submit" class="btn-login">Login</button>
+  
+      <p class="redirect-text">
+        Don’t have an account?
+        <a href="{% url 'register' %}">Create Account</a>
+      </p>
+    </form>
+  </div>
+  
+  <!-- CSS Styles -->
+  <style>
+    .login-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 90vh;
+      background: linear-gradient(to right, #002147, #4fa7ff);
+    }
+  
+    .login-form {
+      background: #ffffff;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+  
+    .form-title {
+      margin-bottom: 25px;
+      color: #002147;
+      font-weight: bold;
+      font-size: 24px;
+    }
+  
+    .form-control {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+  
+    .form-control:focus {
+      outline: none;
+      border-color: #4fa7ff;
+      box-shadow: 0 0 5px rgba(79, 167, 255, 0.5);
+    }
+  
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background-color: #002147;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-top: 15px;
+      transition: background-color 0.3s ease;
+    }
+  
+    .btn-login:hover {
+      background-color: #004080;
+    }
+  
+    .redirect-text {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #333;
+    }
+  
+    .redirect-text a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  
+    .redirect-text a:hover {
+      text-decoration: underline;
+    }
+  </style>
+  
