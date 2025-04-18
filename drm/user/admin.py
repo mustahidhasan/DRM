@@ -54,49 +54,40 @@ class CustomUserAdmin(UserAdmin):
     )
     list_display = ['username', 'email', 'role', 'publisher', 'is_staff']
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        elif request.user.role == 'publisher':
-            return qs.filter(publisher=request.user)
-        return qs.none()
-
-    def has_view_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if request.user.role == 'publisher':
-            return obj is None or obj.publisher == request.user
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        if request.user.is_superuser:
-            return True
-        if request.user.role == 'publisher':
-            return obj is None or obj.publisher == request.user
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return self.has_change_permission(request, obj)
-
-    def has_add_permission(self, request):
-        if request.user.is_superuser:
-            return True
-        return request.user.role == 'publisher'
-
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
+
         if request.user.role == 'publisher':
-            form.base_fields['publisher'].widget.choices = [(request.user.id, request.user.username)]
-            if not obj:
-                form.base_fields['publisher'].initial = request.user
-                form.base_fields['publisher'].widget.attrs['readonly'] = 'readonly'
+            # Ensure the publisher field is set to the current logged-in publisher
+            if 'publisher' in form.base_fields:
+                form.base_fields['publisher'].widget.choices = [(request.user.id, request.user.username)]
+                if not obj:
+                    form.base_fields['publisher'].initial = request.user
+                    form.base_fields['publisher'].widget.attrs['readonly'] = 'readonly'
+                    form.base_fields['role'].initial = 'author'  # Automatically set role to 'author' when creating a new user
+                    form.base_fields['role'].widget.attrs['readonly'] = 'readonly'
+
+        elif request.user.role == 'author':
+            # If the user is an author, they can only add users as publishers
+            if 'role' in form.base_fields:
+                form.base_fields['role'].widget.choices = [('publisher', 'Publisher')]  # Restrict authors to only create publishers
+                if not obj:
+                    form.base_fields['role'].initial = 'publisher'  # Set role to publisher by default
+                    form.base_fields['role'].widget.attrs['readonly'] = 'readonly'  # Make the role field readonly for authors
+
         return form
 
     def save_model(self, request, obj, form, change):
         is_new = obj.pk is None
+        
         if request.user.role == 'publisher' and not obj.publisher:
             obj.publisher = request.user
+        
+        # If author is trying to add a user, restrict based on the role
+        if request.user.role == 'author' and obj.role != 'publisher':
+            self.message_user(request, "Authors can only add users as publishers.", level=messages.ERROR)
+            return
+        
         super().save_model(request, obj, form, change)
         form.save_m2m()
         
@@ -111,3 +102,59 @@ class CustomUserAdmin(UserAdmin):
                 obj.user_permissions.add(perm)
             except Permission.DoesNotExist:
                 pass
+
+    def has_add_permission(self, request):
+        """
+        Modify who has the ability to add new users.
+        - Publishers can add authors.
+        - Authors can add users as publishers only.
+        - Customers cannot add users.
+        """
+        if request.user.role == 'publisher':
+            return True  # Publishers can add authors
+        if request.user.role == 'author':
+            return True  # Authors can only add users as publishers
+        return False  # Customers can't add users
+
+    def has_view_permission(self, request, obj=None):
+        """
+        Modify who has view permission for users.
+        - Superusers can view all users.
+        - Publishers can view their authors and themselves.
+        - Authors can only view themselves and publishers.
+        - Publishers cannot view admin users or superadmins.
+        """
+        if request.user.is_superuser:
+            return True
+        if request.user.role == 'publisher':
+            # Publishers can view:
+            # - Their own profile
+            # - Their authors
+            # - Other publishers
+            return obj is None or obj.publisher == request.user or obj.role == 'publisher'
+        if request.user.role == 'author':
+            # Authors can only view themselves and publishers
+            return obj == request.user or obj.role == 'publisher'
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """
+        Modify who has the change permission.
+        - Superusers can change all users.
+        - Publishers can change their authors.
+        - Authors can only change themselves.
+        """
+        if request.user.is_superuser:
+            return True
+        if request.user.role == 'publisher':
+            return obj is None or obj.publisher == request.user
+        return obj == request.user  # Authors can only change themselves
+
+    def has_delete_permission(self, request, obj=None):
+        """
+        Modify who has delete permission.
+        - Superusers can delete any user.
+        - Publishers can delete their authors.
+        - Authors can only delete themselves.
+        """
+        return self.has_change_permission(request, obj)
