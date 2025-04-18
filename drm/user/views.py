@@ -15,6 +15,14 @@ from drm.settings import SECRET_KEY
 from user.auth_backend import EmailOrUsernameBackend
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth import get_user_model
+
+# Use the custom user model
+User = get_user_model()
+
 
 def home(request):
     books = UploadedFile.objects.filter(is_archieved=False).order_by('-uploaded_at')
@@ -31,12 +39,6 @@ def logout_user(request):
     return redirect(login_view)
 
 
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.contrib.auth import get_user_model
-
-# Use the custom user model
-User = get_user_model()
 
 def register_view(request):
     if request.method == 'POST':
@@ -84,8 +86,6 @@ def register_view(request):
     return render(request, "register.html")
 
 
-from django.contrib.auth import authenticate, login
-from django.http import HttpResponseForbidden
 
 def login_view(request):
     if request.method == 'POST':
