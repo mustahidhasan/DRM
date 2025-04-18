@@ -108,7 +108,7 @@ class CustomUserAdmin(UserAdmin):
         Modify who has the ability to add new users.
         - Publishers can add authors.
         - Authors can add users as publishers only.
-        - Customers cannot add users.
+        - Admins can add any user.
         """
         if request.user.role == 'publisher':
             return True  # Publishers can add authors
@@ -121,7 +121,7 @@ class CustomUserAdmin(UserAdmin):
         Modify who has view permission for users.
         - Superusers can view all users.
         - Publishers can view their authors and themselves.
-        - Authors can only view themselves and publishers.
+        - Authors can only view themselves.
         - Publishers cannot view admin users or superadmins.
         """
         if request.user.is_superuser:
@@ -158,3 +158,23 @@ class CustomUserAdmin(UserAdmin):
         - Authors can only delete themselves.
         """
         return self.has_change_permission(request, obj)
+
+    def get_queryset(self, request):
+        """
+        Customize the queryset based on the user role.
+        - Admins can see all users.
+        - Publishers can see themselves and their authors.
+        - Authors can only see themselves.
+        """
+        qs = super().get_queryset(request)
+
+        if request.user.is_superuser:
+            return qs  # Admins can see all users
+        if request.user.role == 'publisher':
+            # Publishers can see their authors and themselves
+            return qs.filter(publisher=request.user)
+        if request.user.role == 'author':
+            # Authors can only see themselves
+            return qs.filter(id=request.user.id)
+
+        return qs.none()  # For other roles, show no users
