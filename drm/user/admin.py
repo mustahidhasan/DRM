@@ -134,7 +134,7 @@ class CustomUserAdmin(UserAdmin):
             return obj is None or obj.publisher == request.user or obj.role == 'publisher'
         if request.user.role == 'author':
             # Authors can only view themselves and publishers
-            return obj == request.user or obj.role == 'publisher'
+            return obj is None or obj == request.user or obj.role == 'publisher'
         return False
 
     def has_change_permission(self, request, obj=None):

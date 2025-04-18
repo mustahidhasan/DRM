@@ -17,7 +17,7 @@ class CustomUser(AbstractUser):
 
     def save(self, *args, **kwargs):
         if not self.pk:
-            self.is_staff = True
+            self.is_staff = True  # Ensure the user can access the admin if it's a new user
         if self.role == 'author' and not self.publisher:
             raise ValueError("Author must be assigned to a publisher.")
         super().save(*args, **kwargs)
@@ -34,7 +34,6 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.role})"
-
 
 class UploadedFile(models.Model):
     file = models.FileField(upload_to="uploads/")
