@@ -147,8 +147,8 @@ MEDIA_URL = "/media/"  # URL to access uploaded files
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",  # Default backend
-    "user.auth_backend.EmailOrUsernameBackend",  # Custom backend in the user app
+    'user.auth_backend.EmailOrUsernameBackend',  # Your custom backend
+    'django.contrib.auth.backends.ModelBackend',  # Fallback
 ]
 # CSRF_TRUSTED_ORIGINS = [
 #     "*",

@@ -87,10 +87,21 @@ def register_view(request):
 
 
 
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.utils.html import escape  # To prevent HTML injection if username is echoed
+
 def login_view(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+
+        if not username or not password:
+            messages.error(request, "Both username and password are required.")
+            return render(request, "login.html", {
+                "username": escape(username)
+            })
 
         user = authenticate(request, username=username, password=password)
 
@@ -98,18 +109,19 @@ def login_view(request):
             if user.role == 'customer':
                 login(request, user)
                 messages.success(request, f"Welcome back, {user.username}!")
-                return redirect('home')  # or your customer home route
+                return redirect('home')  # Replace with your customer dashboard route
             else:
                 messages.error(request, "Only customers can log in from here.")
         else:
             messages.error(request, "Invalid username or password.")
 
-        # In both failed cases, re-render login with messages
+        # On failure: re-render login form with error and pre-filled username
         return render(request, "login.html", {
-            "username": username,
+            "username": escape(username),
         })
 
     return render(request, "login.html")
+
 
 def profile_view(request):
     return render(request, "profile.html")
