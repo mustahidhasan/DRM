@@ -32,6 +32,7 @@ class UploadedFile(models.Model):
     book_name = models.CharField(max_length=200, blank=True, null=True)
     book_description = models.TextField(max_length=400, blank=True, null=True)
     cover_image = models.ImageField(upload_to='book_covers/', blank=True, null=True)  # <-- Added field
+    price = models.DecimalField(decimal_places=2, max_digits=10,)
     file_created_at = models.DateTimeField(auto_now=True)
     is_archieved = models.BooleanField(default=False)
 

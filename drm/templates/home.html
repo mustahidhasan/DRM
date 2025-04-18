@@ -16,6 +16,7 @@
                 <div class="card-body">
                     <h5 class="card-title">{{ book.book_name|default:"Untitled Book" }}</h5>
                     <p class="card-text">{{ book.book_description|default:"No description."|truncatewords:25 }}</p>
+                    <p class="card-text">{{ book.price|default:"0.00"|truncatewords:25 }}</p>
                 </div>
                 <div class="card-footer d-flex justify-content-between align-items-center">
                     <small class="text-muted">Uploaded: {{ book.uploaded_at|date:"M d, Y" }}</small>
