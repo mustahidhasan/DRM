@@ -97,12 +97,17 @@ def login_view(request):
         if user is not None:
             if user.role == 'customer':
                 login(request, user)
-                return redirect('home')  # replace with your customer home
+                messages.success(request, f"Welcome back, {user.username}!")
+                return redirect('home')  # or your customer home route
             else:
-                return HttpResponseForbidden("You are not allowed to log in here.")
+                messages.error(request, "Only customers can log in from here.")
         else:
-            messages.error(request, "Invalid credentials.")
-            return redirect('login')
+            messages.error(request, "Invalid username or password.")
+
+        # In both failed cases, re-render login with messages
+        return render(request, "login.html", {
+            "username": username,
+        })
 
     return render(request, "login.html")
 
