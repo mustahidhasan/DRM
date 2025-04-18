@@ -24,10 +24,11 @@
       </ul>
       <!-- This part aligns the 'Welcome' message to the right -->
       {% if user.is_authenticated %}
-      <span class="navbar-text ms-auto" style="font-weight: bold; color: yellow;">
-        Welcome, {{ user.username }}!
-      </span>
+          <a href="{% url 'profile' %}" class="btn btn-secondary ms-auto" style="font-weight: bold; color: white;">
+              Welcome, {{ user.username }}!
+          </a>
       {% endif %}
+
     </div>
   </div>
 </nav>

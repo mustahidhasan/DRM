@@ -105,3 +105,6 @@ def login_view(request):
             return redirect('login')
 
     return render(request, "login.html")
+
+def profile_view(request):
+    pass
