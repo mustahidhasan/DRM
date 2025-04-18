@@ -19,6 +19,15 @@ from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.utils.html import escape  # To prevent HTML injection if username is echoed
+
+from django.contrib.auth import authenticate, login
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # Use the custom user model
 User = get_user_model()
@@ -86,16 +95,6 @@ def register_view(request):
     return render(request, "register.html")
 
 
-
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from django.utils.html import escape  # To prevent HTML injection if username is echoed
-
-from django.contrib.auth import authenticate, login
-from django.contrib import messages
-from django.shortcuts import render, redirect
-from rest_framework_simplejwt.tokens import RefreshToken
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
