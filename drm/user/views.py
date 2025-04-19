@@ -39,6 +39,7 @@ from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from drm.settings import REDIRECT_SITE_URL_ROOT, PAYMENT_AUTH_TOKEN
+from django.contrib.auth.models import AnonymousUser
 
 # Use the custom user model
 User = get_user_model()
@@ -52,9 +53,8 @@ def home(request):
 
 
 @csrf_exempt
-@login_required(login_url='login')
 def checkout_view(request):
-    user = request.user
+    user = request.user if not isinstance(request.user, AnonymousUser) else None
 
     if request.method == "POST":
         full_name = request.POST.get('name')
@@ -62,7 +62,7 @@ def checkout_view(request):
         amount = request.POST.get('amount')
         transaction_uuid = uuid.uuid4()
 
-        tx_ref = f"TX-{transaction_uuid}-{user.email}"
+        tx_ref = f"TX-{transaction_uuid}-{email}"  # fallback to email if user is None
         redirect_url = f"{REDIRECT_SITE_URL_ROOT}/payment-complete/"
 
         headers = {
@@ -97,16 +97,21 @@ def checkout_view(request):
                 "error": res_data.get("message", "Something went wrong.")
             })
 
-    data = {
-        'full_name': user.get_full_name(),
-        'email': user.email,
-    }
-    return render(request, 'checkout.html', {"data": data})
+    # Fallback if user is not authenticated
+    full_name = user.get_full_name() if user else ""
+    email = user.email if user else ""
+
+    return render(request, 'checkout.html', {
+        "data": {
+            "full_name": full_name,
+            "email": email,
+        }
+    })
+
 
 @csrf_exempt
-@login_required(login_url='login')
 def payment_complete_view(request):
-    transaction_id = request.GET.get('transaction_id')
+    transaction_id = request.GET.get('transaction_id', "")
 
     if not transaction_id:
         return render(request, "payment.html", {

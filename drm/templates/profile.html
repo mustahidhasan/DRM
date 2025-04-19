@@ -40,13 +40,15 @@
                         <!-- First Name -->
                         <div class="mb-3">
                             <label class="form-label"><i class="bi bi-person-circle me-1"></i>First Name</label>
-                            {{ form.first_name }}
+                            <input type="text" name="first_name" class="form-control" 
+                                value="{{ user.first_name|default_if_none:'' }}">
                         </div>
 
                         <!-- Last Name -->
                         <div class="mb-3">
                             <label class="form-label"><i class="bi bi-person-circle me-1"></i>Last Name</label>
-                            {{ form.last_name }}
+                            <input type="text" name="last_name" class="form-control" 
+                                value="{{ user.last_name|default_if_none:'' }}">
                         </div>
 
                         <!-- Profile Picture Upload -->
