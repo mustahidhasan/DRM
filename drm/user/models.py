@@ -52,7 +52,13 @@ class UploadedFile(models.Model):
         return self.book_name or self.file.name
 
 class Order(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name="orders", 
+        null=True,  # Allow guests (non-logged-in users)
+        blank=True
+    )
     transaction_id = models.CharField(max_length=255, unique=True)
     tx_ref = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -61,6 +67,7 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=50)
     customer_email = models.EmailField()
     customer_name = models.CharField(max_length=255)
+    customer_mobile = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

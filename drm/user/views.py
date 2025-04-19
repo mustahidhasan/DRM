@@ -59,6 +59,8 @@ def checkout_view(request):
     if request.method == "POST":
         full_name = request.POST.get('name')
         email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        request.session["customer_phone"] = phone
         amount = request.POST.get('amount')
         transaction_uuid = uuid.uuid4()
 
@@ -112,6 +114,7 @@ def checkout_view(request):
 @csrf_exempt
 def payment_complete_view(request):
     transaction_id = request.GET.get('transaction_id', "")
+    customer_mobile = request.session.pop("customer_phone", "")
 
     if not transaction_id:
         return render(request, "payment.html", {
@@ -130,9 +133,12 @@ def payment_complete_view(request):
     if res_data.get("status") == "success" and res_data["data"]["status"] == "successful":
         payment_data = res_data["data"]
 
+        # Determine if user is authenticated
+        user = request.user if request.user.is_authenticated else None
+
         # Save to DB
         Order.objects.create(
-            user=request.user,
+            user=user,  # This can now safely be None
             transaction_id=payment_data["id"],
             tx_ref=payment_data["tx_ref"],
             amount=payment_data["amount"],
@@ -140,6 +146,7 @@ def payment_complete_view(request):
             payment_type=payment_data.get("payment_type", ""),
             payment_status=payment_data["status"],
             customer_email=payment_data["customer"]["email"],
+            customer_mobile=customer_mobile,
             customer_name=payment_data["customer"]["name"]
         )
         if "cart" in request.session:
