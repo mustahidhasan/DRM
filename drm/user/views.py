@@ -40,6 +40,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from drm.settings import REDIRECT_SITE_URL_ROOT, PAYMENT_AUTH_TOKEN
 from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 
 # Use the custom user model
 User = get_user_model()
@@ -151,10 +152,13 @@ def payment_complete_view(request):
         )
         if "cart" in request.session:
             del request.session["cart"]
+            request.session.modified = True  # Ensure changes are saved
 
         return render(request, "payment.html", {
             "success": True,
-            "payment": res_data["data"]
+            "payment": res_data["data"],
+            "customer_phone": customer_mobile,
+            "created_at": timezone.now().strftime("%Y-%m-%d %H:%M:%S")
         })
     else:
         return render(request, "payment.html", {
