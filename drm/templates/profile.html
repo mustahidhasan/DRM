@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Customer Profile</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label>Email:</label>
+            <input type="email" value="{{ user_data.email }}" class="form-control" readonly>
+        </div>
+        <div class="mb-3">
+            <label>Username:</label>
+            <input type="text" value="{{ user_data.username }}" class="form-control" readonly>
+        </div>
+        {{ form.as_p }}
+
+        {% if user_data.profile_picture %}
+            <div class="mb-3">
+                <img src="{{ user_data.profile_picture.url }}" alt="Profile Picture" class="img-thumbnail" style="max-width: 200px;">
+            </div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-success">Update Profile</button>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+{% endblock %}

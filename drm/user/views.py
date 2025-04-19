@@ -249,5 +249,25 @@ def login_view(request):
 
 
 
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from .forms import CustomerProfileForm
+
+@login_required
 def profile_view(request):
-    return render(request, "profile.html")
+    user = request.user
+    if user.role != "customer":
+        return redirect('home')  # Optional: restrict to customers
+
+    if request.method == "POST":
+        form = CustomerProfileForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = CustomerProfileForm(instance=user)
+
+    return render(request, "profile.html", {
+        "form": form,
+        "user_data": user
+    })
