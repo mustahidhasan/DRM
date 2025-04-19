@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
-from .models import UploadedFile
+from .models import UploadedFile, Order
 from .forms import SignUpForm
 from django.core.exceptions import ValidationError
 import jwt
@@ -123,6 +123,23 @@ def payment_complete_view(request):
     res_data = response.json()
 
     if res_data.get("status") == "success" and res_data["data"]["status"] == "successful":
+        payment_data = res_data["data"]
+
+        # Save to DB
+        Order.objects.create(
+            user=request.user,
+            transaction_id=payment_data["id"],
+            tx_ref=payment_data["tx_ref"],
+            amount=payment_data["amount"],
+            currency=payment_data["currency"],
+            payment_type=payment_data.get("payment_type", ""),
+            payment_status=payment_data["status"],
+            customer_email=payment_data["customer"]["email"],
+            customer_name=payment_data["customer"]["name"]
+        )
+        if "cart" in request.session:
+            del request.session["cart"]
+
         return render(request, "payment.html", {
             "success": True,
             "payment": res_data["data"]

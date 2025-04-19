@@ -178,3 +178,13 @@ class CustomUserAdmin(UserAdmin):
             return qs.filter(id=request.user.id)
 
         return qs.none()  # For other roles, show no users
+
+
+from django.contrib import admin
+from .models import Order
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "transaction_id", "amount", "currency", "payment_status", "created_at")
+    search_fields = ("tx_ref", "transaction_id", "customer_email")
+    list_filter = ("payment_status", "currency", "created_at")
