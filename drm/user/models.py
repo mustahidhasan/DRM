@@ -70,5 +70,12 @@ class Order(models.Model):
     customer_mobile = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Use ManyToManyField to associate multiple uploaded files
+    uploaded_files = models.ManyToManyField(
+        UploadedFile, 
+        related_name='orders', 
+        blank=True  # Allow orders with no uploaded files initially
+    )
+
     def __str__(self):
         return f"Order #{self.id} - {self.tx_ref}"
