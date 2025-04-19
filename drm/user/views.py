@@ -47,6 +47,7 @@ def home(request):
 @login_required(login_url='login')  # Redirects to login page if not logged in
 @csrf_exempt  # Only use this if you absolutely need to disable CSRF
 def checkout_view(request):
+    
     return render(request, 'checkout.html')
 
 
