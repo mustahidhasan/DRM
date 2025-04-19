@@ -13,7 +13,7 @@
 
     <div class="mt-5">
         <h5>Customer Details</h5>
-        <form method="post">
+        <form method="post" action="{% url 'checkout' %}">
             {% csrf_token %}
             <div class="mb-3">
                 <label for="name" class="form-label">Full Name</label>
@@ -23,6 +23,7 @@
                 <label for="email" class="form-label">Email Address</label>
                 <input type="email" class="form-control" id="email" name="email" value="{{ data.email }}" required>
             </div>
+            <input type="hidden" id="amount" name="amount">
             <button type="submit" class="btn btn-success">Confirm Order</button>
         </form>
         
@@ -32,11 +33,13 @@
 
 {% block scripts %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
 <script>
     function loadCheckoutCart() {
         const cart = JSON.parse(localStorage.getItem('cart')) || [];
         const checkoutItems = document.getElementById('checkout-items');
         const checkoutTotal = document.getElementById('checkout-total');
+        const amountInput = document.getElementById('amount');
 
         checkoutItems.innerHTML = '';
         let total = 0;
@@ -56,6 +59,9 @@
         });
 
         checkoutTotal.textContent = total.toFixed(2);
+        if (amountInput) {
+            amountInput.value = total.toFixed(2);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', loadCheckoutCart);

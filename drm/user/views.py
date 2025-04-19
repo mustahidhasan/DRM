@@ -44,16 +44,60 @@ def home(request):
 
 
 
-@login_required(login_url='login')  # Redirects to login page if not logged in
-@csrf_exempt  # Only use this if you absolutely need to disable CSRF
+import requests
+import json
+from django.shortcuts import render, redirect
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url='login')
+@csrf_exempt
 def checkout_view(request):
     user = request.user
-    data = {
-        'full_name': user.get_full_name(),
-        'email': user.email,
-    }
 
-    return render(request, 'checkout.html', {"data": data})
+    if request.method == "POST":
+        full_name = request.POST.get('name')
+        email = request.POST.get('email')
+        amount = request.POST.get('amount')
+
+        tx_ref = f"TX-{user.id}-{user.email}"
+        redirect_url = "http://localhost:8000/payment-complete/"  # Change to your deployed site
+
+        headers = {
+            "Authorization": "Bearer FLWSECK_TEST-a4172b71298ffebbdb50b21d8f45c3d3-X",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "tx_ref": tx_ref,
+            "amount": amount,
+            "currency": "USD",
+            "redirect_url": redirect_url,
+            "payment_options": "card,banktransfer",
+            "customer": {
+                "email": email,
+                "name": full_name,
+            },
+            "customizations": {
+                "title": "DRM Purches",
+                "description": "Payment for Order",
+            }
+        }
+
+        response = requests.post("https://api.flutterwave.com/v3/payments", headers=headers, data=json.dumps(payload))
+        res_data = response.json()
+
+        if res_data.get("status") == "success":
+            return redirect(res_data["data"]["link"])
+        else:
+            return render(request, "checkout_error.html", {"error": res_data})
+
+    else:
+        data = {
+            'full_name': user.get_full_name(),
+            'email': user.email,
+        }
+        return render(request, 'checkout.html', {"data": data})
 
 
 def logout_user(request):
