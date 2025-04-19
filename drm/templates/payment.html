@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4">{{ success|yesno:"Payment Successful!,Payment Failed" }}</h2>
+
+    {% if success %}
+        <div class="alert alert-success">
+            <p><strong>Transaction ID:</strong> {{ payment.id }}</p>
+            <p><strong>Transaction Reference:</strong> {{ payment.tx_ref }}</p>
+            <p><strong>Status:</strong> {{ payment.status }}</p>
+            <p><strong>Amount:</strong> {{ payment.amount }} {{ payment.currency }}</p>
+            <p><strong>Customer Email:</strong> {{ payment.customer.email }}</p>
+            <p><strong>Payment Type:</strong> {{ payment.payment_type }}</p>
+            <p><strong>Payment Link:</strong> <a href="{{ payment.link }}" target="_blank">Click here</a></p>
+        </div>
+    {% else %}
+        <div class="alert alert-danger">
+            <p><strong>Error:</strong> {{ error }}</p>
+        </div>
+    {% endif %}
+
+    <a href="{% url 'home' %}" class="btn btn-primary mt-3">Go Back to Home</a>
+</div>
+{% endblock %}

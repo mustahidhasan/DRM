@@ -32,6 +32,13 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator  # If you use class-based views
 from django.shortcuts import render
+import requests
+import json
+import uuid
+from django.shortcuts import render, redirect
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from drm.settings import REDIRECT_SITE_URL_ROOT, PAYMENT_AUTH_TOKEN
 
 # Use the custom user model
 User = get_user_model()
@@ -44,14 +51,8 @@ def home(request):
 
 
 
-import requests
-import json
-from django.shortcuts import render, redirect
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
-
-@login_required(login_url='login')
 @csrf_exempt
+@login_required(login_url='login')
 def checkout_view(request):
     user = request.user
 
@@ -59,12 +60,13 @@ def checkout_view(request):
         full_name = request.POST.get('name')
         email = request.POST.get('email')
         amount = request.POST.get('amount')
+        transaction_uuid = uuid.uuid4()
 
-        tx_ref = f"TX-{user.id}-{user.email}"
-        redirect_url = "http://localhost:8000/payment-complete/"  # Change to your deployed site
+        tx_ref = f"TX-{transaction_uuid}-{user.email}"
+        redirect_url = f"{REDIRECT_SITE_URL_ROOT}/payment-complete/"
 
         headers = {
-            "Authorization": "Bearer FLWSECK_TEST-a4172b71298ffebbdb50b21d8f45c3d3-X",
+            "Authorization": f"Bearer {PAYMENT_AUTH_TOKEN}",
             "Content-Type": "application/json"
         }
 
@@ -79,7 +81,7 @@ def checkout_view(request):
                 "name": full_name,
             },
             "customizations": {
-                "title": "DRM Purches",
+                "title": "DRM Purchase",
                 "description": "Payment for Order",
             }
         }
@@ -90,14 +92,46 @@ def checkout_view(request):
         if res_data.get("status") == "success":
             return redirect(res_data["data"]["link"])
         else:
-            return render(request, "checkout_error.html", {"error": res_data})
+            return render(request, "payment.html", {
+                "success": False,
+                "error": res_data.get("message", "Something went wrong.")
+            })
 
+    data = {
+        'full_name': user.get_full_name(),
+        'email': user.email,
+    }
+    return render(request, 'checkout.html', {"data": data})
+
+@csrf_exempt
+@login_required(login_url='login')
+def payment_complete_view(request):
+    transaction_id = request.GET.get('transaction_id')
+
+    if not transaction_id:
+        return render(request, "payment.html", {
+            "success": False,
+            "error": "Missing transaction ID in the request."
+        })
+
+    headers = {
+        "Authorization": f"Bearer {PAYMENT_AUTH_TOKEN}"
+    }
+
+    verify_url = f"https://api.flutterwave.com/v3/transactions/{transaction_id}/verify"
+    response = requests.get(verify_url, headers=headers)
+    res_data = response.json()
+
+    if res_data.get("status") == "success" and res_data["data"]["status"] == "successful":
+        return render(request, "payment.html", {
+            "success": True,
+            "payment": res_data["data"]
+        })
     else:
-        data = {
-            'full_name': user.get_full_name(),
-            'email': user.email,
-        }
-        return render(request, 'checkout.html', {"data": data})
+        return render(request, "payment.html", {
+            "success": False,
+            "error": res_data.get("message", "Transaction verification failed.")
+        })
 
 
 def logout_user(request):
