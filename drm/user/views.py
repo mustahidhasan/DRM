@@ -287,3 +287,8 @@ def profile_view(request):
         "form": form,
         "user_data": user
     })
+
+@login_required(login_url='login')
+def books_view(request):
+
+    return render(request, "books.html")

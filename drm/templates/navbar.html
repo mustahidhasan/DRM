@@ -15,7 +15,9 @@
           <a class="nav-link custom-link text-white" href="{% url 'home' %}">Store</a>
         </li>
         {% if user.is_authenticated %}
-        
+        <li class="nav-item">
+          <a class="nav-link custom-link text-white" href="{% url 'books' %}">Books</a>
+        </li>
         {% else %}
         <li class="nav-item">
           <a class="nav-link custom-link text-white" href="{% url 'login' %}">Login</a>
