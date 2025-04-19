@@ -1,39 +1,74 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-light custom-navbar">
   <div class="container-fluid">
-    <a class="navbar-brand" href="{% url 'home' %}">DRM</a>
+    <a class="navbar-brand text-white fw-bold" href="{% url 'home' %}">DRM</a>
+
+    <!-- Toggle Button for Smaller Screens -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
       aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
+
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+      <!-- Centered Nav Links -->
+      <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link custom-link text-white" href="{% url 'home' %}">Store</a>
+        </li>
         {% if user.is_authenticated %}
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'home' %}">Home</a>
-        </li>
-        {% if user.is_superuser %}
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
-        </li>
-        {% endif %}
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'logout' %}">Logout</a>
-        </li>
+        
         {% else %}
         <li class="nav-item">
-          <!-- <a class="nav-link" href="{% url 'register' %}">Register</a> -->
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'home' %}">Login</a>
+          <a class="nav-link custom-link text-white" href="{% url 'login' %}">Login</a>
         </li>
         {% endif %}
       </ul>
-      <!-- This part aligns the 'Welcome' message to the right -->
+
+      <!-- Right Side - Username and Logout Icon -->
       {% if user.is_authenticated %}
-      <span class="navbar-text ms-auto" style="font-weight: bold; color: yellow;">
-        Welcome, {{ user.username }}!
-      </span>
+      <div class="d-flex align-items-center">
+        <a href="{% url 'profile' %}" class="btn btn-light text-primary fw-bold me-3 custom-profile-btn">
+            Welcome, {{ user.username }}!
+        </a>
+        <a href="{% url 'logout' %}" class="btn btn-danger custom-logout-btn">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
+      </div>
       {% endif %}
     </div>
   </div>
 </nav>
+
+<!-- CSS Styles -->
+<style>
+  /* Navbar Gradient: Dark Blue to Light Blue */
+  .custom-navbar {
+    background: linear-gradient(90deg, #002147, #4fa7ff);
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Nav Link Hover */
+  .custom-link:hover {
+    color: #ffeb3b !important; /* Yellow on hover */
+    transition: color 0.3s ease;
+  }
+
+  /* Profile Button Hover */
+  .custom-profile-btn:hover {
+    background-color: #dbeeff;
+    color: #002147;
+    transition: all 0.3s ease;
+  }
+
+  /* Logout Button Hover */
+  .custom-logout-btn:hover {
+    background-color: #ffffff;
+    color: #002147;
+    border-color: #ffffff;
+    transition: all 0.3s ease;
+  }
+
+  /* Logout Icon */
+  .custom-logout-btn i {
+    font-size: 1.2rem;
+  }
+</style>

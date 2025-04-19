@@ -2,43 +2,39 @@
 {% load static %}
 
 {% block content %}
-<div class="register-container">
-    <form method="post" class="register-form">
+<div class="login-container">
+    <form method="post" class="login-form">
       {% csrf_token %}
-      <h2 class="form-title">Create Account</h2>
+      <h2 class="form-title">Login</h2>
   
-      <input type="text" name="first_name" placeholder="First Name" required class="form-control">
-      <input type="text" name="last_name" placeholder="Last Name" required class="form-control">
       <input type="text" name="username" placeholder="Username" required class="form-control">
-      <input type="email" name="email" placeholder="Email" required class="form-control">
       <input type="password" name="password" placeholder="Password" required class="form-control">
-      <input type="password" name="confirm_password" placeholder="Confirm Password" required class="form-control">
   
-      <button type="submit" class="btn-register">Register</button>
+      <button type="submit" class="btn-login">Login</button>
   
       <p class="redirect-text">
-        Already have an account?
-        <a href="{% url 'login' %}">Login Here</a>
+        Don’t have an account?
+        <a href="{% url 'register' %}">Create Account</a>
       </p>
     </form>
   </div>
   
   <!-- CSS Styles -->
   <style>
-    .register-container {
+    .login-container {
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 95vh;
+      min-height: 90vh;
     }
   
-    .register-form {
+    .login-form {
       background: #ffffff;
       padding: 40px 30px;
       border-radius: 12px;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
       width: 100%;
-      max-width: 450px;
+      max-width: 400px;
       text-align: center;
     }
   
@@ -64,7 +60,7 @@
       box-shadow: 0 0 5px rgba(79, 167, 255, 0.5);
     }
   
-    .btn-register {
+    .btn-login {
       width: 100%;
       padding: 12px;
       background-color: #002147;
@@ -76,7 +72,7 @@
       transition: background-color 0.3s ease;
     }
   
-    .btn-register:hover {
+    .btn-login:hover {
       background-color: #004080;
     }
   

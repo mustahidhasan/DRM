@@ -39,14 +39,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "user",
-    "document",
     # "corsheaders",
 ]
 JAZZMIN_SETTINGS = {
     "site_title": "DRM Admin",
     "site_header": "DRM",
     "site_brand": "DRM",
-    "welcome_sign": "Welcome to DRM Admin",
+    "welcome_sign": "Welcome to DRM",
     "topmenu_links": [
         {"name": "Home", "url": "/", "icon": "fa fa-home"},
         {"name": "Logout", "url": "/logout", "icon": "fa fa-sign-out-alt"},
@@ -55,6 +54,9 @@ JAZZMIN_SETTINGS = {
     "default_icon_parents": "fa fa-folder",
     "default_icon_children": "fa fa-file",
 }
+# settings.py
+LOGIN_REDIRECT_URL = '/admin/'
+
 MIDDLEWARE = [
     # "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -67,6 +69,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "drm.urls"
+
+AUTH_USER_MODEL = 'user.CustomUser'
 
 TEMPLATES = [
     {
@@ -143,9 +147,28 @@ MEDIA_URL = "/media/"  # URL to access uploaded files
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",  # Default backend
-    "user.auth_backend.EmailOrUsernameBackend",  # Custom backend in the user app
+    'user.auth_backend.EmailOrUsernameBackend',  # Your custom backend
+    'django.contrib.auth.backends.ModelBackend',  # Fallback
 ]
 # CSRF_TRUSTED_ORIGINS = [
 #     "*",
 # ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+REDIRECT_SITE_URL_ROOT="http://localhost:8000"
+PAYMENT_AUTH_TOKEN="FLWSECK_TEST-a4172b71298ffebbdb50b21d8f45c3d3-X"

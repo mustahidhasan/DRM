@@ -1,16 +1,20 @@
-from django.contrib.auth.models import User
-from django.contrib.auth.backends import BaseBackend
+from django.contrib.auth import get_user_model
 
-class EmailOrUsernameBackend(BaseBackend):
-    @staticmethod
-    def authenticate(self=None, request=None, username=None, password=None):
+User = get_user_model()  # Correct way to get custom user model
+
+class EmailOrUsernameBackend:
+    def authenticate(self, request, username=None, password=None, **kwargs):
         try:
-            # Try using email to find the user
-            user = User.objects.get(email=username)
-            return user
+            user = User.objects.get(username=username)
         except User.DoesNotExist:
-            return None
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                return None
 
+        if user.check_password(password):
+            return user
+        return None
     @staticmethod
     def get_user(user_id):
         try:

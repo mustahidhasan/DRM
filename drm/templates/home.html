@@ -1,154 +1,168 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
 
-{% if user.is_authenticated %}
-<style>
-    /* Full-screen overlay */
-    .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.2); /* Light semi-transparent background */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1050;
-    }
-    
-    /* Circular spinner container */
-    .loading-circle {
-        width: 120px;
-        height: 120px;
-        background: transparent; /* No background */
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 0 15px rgba(0, 13, 19, 0.5); /* Subtle blue glow */
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%); /* Centers it perfectly */
-    }
-    
-    /* Spinner inside the circle */
-    .spinner-border {
-        width: 3rem;
-        height: 3rem;
-        color: rgb(12, 54, 131) !important; /* Ensures spinner is blue */
-    }
-    
-    
-</style>
-<div class="container mt-2">
-    <!-- Spinner -->
-    <div id="loadingSpinner" class="loading-overlay" style="display: none;">
-        <div class="loading-circle">
-            <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
-                <span class="sr-only"></span>
-            </div>
-            <p class="mt-3 text-light fw-bold"></p>
-        </div>
+<!-- 🛒 Floating Cart Icon -->
+<div style="position: fixed; top: 70px; right: 30px; z-index: 1050;">
+    <button id="toggle-cart" class="btn btn-outline-dark position-relative">
+        <i class="bi bi-cart3"></i>
+        <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            0
+        </span>
+    </button>
+</div>
+
+<!-- 🧾 Cart Drawer -->
+<div id="cart-drawer" class="position-fixed top-0 start-0 h-100 bg-white shadow p-3" style="width: 300px; transform: translateX(-100%); transition: transform 0.3s ease; z-index: 1040;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Your Cart</h5>
+        <button class="btn-close" id="close-cart" aria-label="Close"></button>
     </div>
-    <!-- File Upload Form -->
-    <h2>Upload a File</h2>
-    <form method="POST" enctype="multipart/form-data" action="{% url 'home' %}">
-        {% csrf_token %}
-        <div class="mb-3">
-            <input type="file" name="uploaded_file" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-success">Upload</button>
-    </form>
+    <ul id="cart-items" class="list-group mb-3"></ul>
+    <div class="text-end fw-bold">Total: $<span id="cart-total">0.00</span></div>
+    <a href="{% url 'checkout' %}" class="btn btn-primary w-100">Checkout</a>
+</div>
 
-    <hr>
-
-    <!-- List of Uploaded Files -->
-    <h2>Uploaded Files</h2>
-    {% if uploaded_files %}
-    <ul class="list-group">
-        {% for file in uploaded_files %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <a href="{{ file.file.url }}" target="_blank">{{ file.file.name }}</a>
-            
-            <!-- Container for buttons to align them inline -->
-            <div class="d-flex">
-                <p style="display: inline;" class="m-1"><strong>Uploaded at:</strong> {{ file.file_created_at }}</p>
-                <!-- Delete Button -->
-                <form method="POST" action="{% url 'home' %}" style="display: inline;" class="m-1">
-                    {% csrf_token %}
-                    <input type="hidden" name="delete_file" value="{{ file.id }}">
-                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                </form>
+<!-- 📚 Book List -->
+<div class="container py-4">
+    <h2 class="mb-4">Available Books</h2>
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for book in books %}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                {% if book.cover_image %}
+                    <img src="{{ book.cover_image.url }}" class="card-img-top" alt="Cover" style="height: 250px; object-fit: cover;">
+                {% else %}
+                    <img src="{% static 'images/default_cover.jpg' %}" class="card-img-top" alt="No Cover" style="height: 250px; object-fit: cover;">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ book.book_name|default:"Untitled Book" }}</h5>
+                    <p class="card-text">{{ book.book_description|default:"No description."|truncatewords:25 }}</p>
+                    <p class="card-text fw-bold text-success">${{ book.price|default:"0.00" }}</p>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Uploaded: {{ book.uploaded_at|date:"M d, Y" }}</small>
+                    <button class="btn btn-warning btn-sm add-to-cart-btn"
+                        data-id="{{ book.id }}"
+                        data-name="{{ book.book_name }}"
+                        data-price="{{ book.price|default:0.00 }}"
+                        data-file="{{ book.file.name }}">
+                        Add to Cart
+                    </button>
+                </div>
             </div>
-        </li>
+        </div>
         {% endfor %}
-    </ul>
-    
-    {% else %}
-    <p>No files uploaded yet.</p>
-    {% endif %}
+    </div>
+</div>
 
-</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const loadingSpinner = document.getElementById("loadingSpinner");
-    
-        // Select the Upload form
-        const uploadForm = document.querySelector("form[action='{% url 'home' %}']");
-    
-        // Select all Split forms using data attribute
-        const splitForms = document.querySelectorAll("form[data-split='true']");
-    
-        // Select all Delete forms
-        const deleteForms = document.querySelectorAll("form[action='{% url 'home' %}']");
-    
-        // Function to show spinner
-        function showSpinner(event) {
-            loadingSpinner.style.display = "flex";
+    function getCart() {
+        return JSON.parse(localStorage.getItem('cart')) || [];
+    }
+
+    function saveCart(cart) {
+        localStorage.setItem('cart', JSON.stringify(cart));
+    }
+
+    function addToCart(product) {
+        let cart = getCart();
+        const existing = cart.find(item => item.id === product.id);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cart.push({ ...product, qty: 1 });
         }
-    
-        // Add event listener to Upload form
-        if (uploadForm) {
-            uploadForm.addEventListener("submit", showSpinner);
-        }
-    
-        // Add event listeners to all Split forms
-        splitForms.forEach(form => {
-            form.addEventListener("submit", showSpinner);
+        saveCart(cart);
+        updateCartDisplay();
+    }
+
+    function removeFromCart(productId) {
+        let cart = getCart();
+        cart = cart.filter(item => item.id !== productId);
+        saveCart(cart);
+        updateCartDisplay();
+    }
+
+    function updateCartDisplay() {
+        const cart = getCart();
+        const cartItemsList = document.getElementById('cart-items');
+        const cartCount = document.getElementById('cart-count');
+        const cartTotal = document.getElementById('cart-total');
+
+        cartItemsList.innerHTML = '';
+        let totalItems = 0;
+        let totalPrice = 0;
+
+        cart.forEach(item => {
+            totalItems += item.qty;
+            totalPrice += item.price * item.qty;
+
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+            li.innerHTML = `
+                <div>
+                    <strong>${item.name}</strong><br>
+                    <small>$${item.price.toFixed(2)} x ${item.qty}</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-secondary me-2">$${(item.price * item.qty).toFixed(2)}</span>
+                    <button class="btn btn-sm btn-danger remove-item" data-id="${item.id}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            cartItemsList.appendChild(li);
         });
-    
-        // Add event listeners to all Delete forms
-        deleteForms.forEach(form => {
-            form.addEventListener("submit", showSpinner);
+
+        cartCount.textContent = totalItems;
+        cartTotal.textContent = totalPrice.toFixed(2);
+
+        // Attach delete listeners after rendering
+        document.querySelectorAll('.remove-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.dataset.id);
+                removeFromCart(id);
+            });
         });
-    
-        // Ensure the spinner is hidden when the page loads
-        window.onload = function () {
-            loadingSpinner.style.display = "none";
-        };
+    }
+
+    function toggleCartDrawer(show) {
+        const drawer = document.getElementById('cart-drawer');
+        drawer.style.transform = show ? 'translateX(0)' : 'translateX(-100%)';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const product = {
+                    id: parseInt(btn.dataset.id),
+                    name: btn.dataset.name,
+                    price: parseFloat(btn.dataset.price)
+                };
+                addToCart(product);
+            });
+        });
+
+        document.getElementById('toggle-cart').addEventListener('click', () => {
+            toggleCartDrawer(true);
+        });
+
+        document.getElementById('close-cart').addEventListener('click', () => {
+            toggleCartDrawer(false);
+        });
+
+        updateCartDisplay();
     });
-    
-    </script>
-    
-{% else %}
-<div class="col-md-6 offset-md-3">
-    <h1>Login</h1>
-    <br>
-    <form method="POST" action="{% url 'home' %}">
-        {% csrf_token %}
-        <div class="mb-3">
-            <input type="text" class="form-control" name="username" placeholder="Username" required>
-        </div>
-        <br>
-        <div class="mb-3">
-            <input type="password" class="form-control" name="password" placeholder="Password" required>
-        </div>
-        <br>
-        <button type="submit" class="btn btn-secondary">Login</button>
-    </form>
-</div>
-{% endif %}
+</script>
+
+
 {% endblock %}
