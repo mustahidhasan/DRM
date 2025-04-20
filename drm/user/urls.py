@@ -13,5 +13,7 @@ urlpatterns = [
     path("profile/", views.profile_view, name="profile"),
 
     path("books/", views.books_view, name="books"),
+    path("book/<int:book_id>/", views.view_book, name="view_book")
+
 
 ]

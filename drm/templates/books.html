@@ -1,1 +1,18 @@
-books
+{% extends 'base.html' %}
+{% block content %}
+<h2>Your Purchased Books</h2>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {% for book in uploaded_books %}
+    <div class="bg-white shadow rounded p-4">
+      <h3 class="text-xl font-semibold">{{ book.book_name }}</h3>
+      <p class="text-sm text-gray-600">Uploaded: {{ book.uploaded_at|date:"Y-m-d" }}</p>
+      <a href="{% url 'view_book' book.id %}" class="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        View
+      </a>
+    </div>
+  {% empty %}
+    <p>You haven't purchased any books yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

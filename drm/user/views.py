@@ -2,7 +2,8 @@ UPLOAD_DIR = "uploaded_files/"  # Directory to save uploaded files
 
 
 import os
-from django.shortcuts import render, redirect
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
@@ -301,7 +302,28 @@ def profile_view(request):
         "user_data": user
     })
 
+
 @login_required(login_url='login')
 def books_view(request):
+    user = request.user
+    email = user.email
 
-    return render(request, "books.html")
+    # Get all orders associated with the user's email
+    orders = Order.objects.filter(customer_email=email)
+
+    # Collect unique uploaded files from those orders
+    uploaded_books = UploadedFile.objects.filter(orders__in=orders).distinct()
+
+    return render(request, "books.html", {
+        "uploaded_books": uploaded_books,
+    })
+
+@login_required
+def view_book(request, book_id):
+    book = get_object_or_404(UploadedFile, id=book_id)
+
+    # Optional: verify user has permission to access this book
+    if not Order.objects.filter(user=request.user, uploaded_files=book).exists():
+        return HttpResponseForbidden("You don't have access to this book.")
+
+    return render(request, "view_book.html", {"book": book})
