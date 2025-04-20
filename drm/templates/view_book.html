@@ -11,7 +11,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
 
 <script>
-    // URL of the PDF file
     const url = 'http://127.0.0.1:8000{{ book.file.url }}'; // Ensure this is correct
 
     // Initialize PDF.js
@@ -39,7 +38,7 @@
                 const userId = localStorage.getItem('userId');
                 context.font = "30px Arial";
                 context.fillStyle = "rgba(255, 0, 0, 0.5)";
-                context.fillText(`User ID: ${userId}`, 50, 50);
+                context.fillText(`User ID: ${userId}`, 50, 50);  // Watermark
 
                 // Append the canvas to the container
                 document.getElementById('pdf-container').appendChild(canvas);
@@ -51,27 +50,37 @@
         console.error("Error loading PDF: ", error);
     });
 
-    // Security: Disable right-click, print-screen, and developer tools
-    document.addEventListener('contextmenu', (e) => e.preventDefault());  // Disable right-click
-
-    // Prevent text selection and copying
+    // Disable right-click, text selection, and developer tools
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.body.style.userSelect = "none";
     document.body.style.webkitUserSelect = "none";
 
-    // Disable Developer Tools (can be bypassed but deterrent)
-    (function() {
-        const devtools = /./;
-        devtools.toString = function () {
-            alert("Developer tools are disabled.");
-        };
-        console.log(devtools);
-    })();
-
-    // Disable printing & downloads (via browser events)
+    // Disable print and downloads (Browser-based)
     window.onbeforeprint = function() {
         alert("Printing is disabled.");
         return false;
     };
+
+    // Screen Recording Detection (basic)
+    function detectRecording() {
+        // Listen for visibility change, which might indicate a screen recorder is capturing
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                alert("Screen recording detected. Your session will be terminated.");
+                window.location.href = "/logout";  // Redirect to logout
+            }
+        });
+
+        // Use WebRTC to check for screen sharing (indirect method)
+        navigator.permissions.query({ name: 'screen-writable' }).then(permissionStatus => {
+            if (permissionStatus.state === 'granted') {
+                alert("Screen recording detected. Your session will be terminated.");
+                window.location.href = "/logout";  // Redirect to logout
+            }
+        });
+    }
+
+    detectRecording();  // Run the detection
 
     // Device restrictions: Max 1 device per account
     let deviceToken = localStorage.getItem('deviceToken');
@@ -115,39 +124,6 @@
         }
     }
 
-    // Anti-piracy: Detecting Screen Recording
-    let isRecording = false;
-
-    function checkScreenRecording() {
-        try {
-            // Use visibilitychange to detect if the page loses focus (when screen recording might start)
-            document.addEventListener('visibilitychange', function() {
-                if (document.hidden) {
-                    console.log("Page is no longer visible.");
-                    isRecording = true; 
-                    alert("Screen recording detected. Your session will be terminated.");
-                    window.location.href = "/logout";  // Redirect to logout
-                } else {
-                    console.log("Page is visible.");
-                    isRecording = false;
-                }
-            });
-
-            // Checking screen capture permission (works in some modern browsers)
-            navigator.permissions.query({ name: 'screen-writable' }).then(permissionStatus => {
-                if (permissionStatus.state === 'granted') {
-                    isRecording = true;
-                    alert("Screen recording detected. Your session will be terminated.");
-                    window.location.href = "/logout";  // Redirect to logout
-                }
-            });
-        } catch (e) {
-            console.log("Screen recording detection error: " + e);
-        }
-    }
-
-    setInterval(checkScreenRecording, 5000);  // Run the check every 5 seconds
-
     // Anti-piracy: Detecting Automation Scripts (Selenium, Puppeteer)
     function detectAutomationScripts() {
         const userAgent = navigator.userAgent;
@@ -162,7 +138,7 @@
     }
     detectAutomationScripts();
 
-    // Violation penalties (simplified example)
+    // Watermark detection penalties (simplified example)
     let violationCount = localStorage.getItem('violationCount') || 0;
 
     function handleViolation() {
