@@ -1,14 +1,51 @@
 {% extends 'base.html' %}
 {% block content %}
-<iframe id="pdfReader" src="http://127.0.0.1:8000{{ book.file.url }}" width="100%" height="800px" style="border:none;" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;">
-    This browser does not support PDFs. Please download the file instead.
-</iframe>
+<div id="pdf-container" style="width: 100%; height: 100vh; display: flex; flex-direction: column; align-items: center;">
+    <!-- Container for the pages -->
+</div>
 {% endblock %}
 
 {% block scripts %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+
 <script>
+    // URL of the PDF file
+    const url = 'http://127.0.0.1:8000{{ book.file.url }}'; // Ensure this is correct
+
+    // Initialize PDF.js
+    pdfjsLib.getDocument(url).promise.then(function(pdf) {
+        // Get the total number of pages in the PDF
+        const totalPages = pdf.numPages;
+        
+        // Render each page
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+            pdf.getPage(pageNum).then(function(page) {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                const viewport = page.getViewport({ scale: 1.5 });
+
+                // Set canvas size to match the page's viewport
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                // Render PDF page onto canvas
+                page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                });
+
+                // Append the canvas to the container
+                document.getElementById('pdf-container').appendChild(canvas);
+            }).catch(function(error) {
+                console.error("Error rendering page: ", error);
+            });
+        }
+    }).catch(function(error) {
+        console.error("Error loading PDF: ", error);
+    });
+
     // Disable right-click, print-screen, and developer tools
     document.addEventListener('contextmenu', (e) => e.preventDefault());  // Disable right-click
 
@@ -82,13 +119,10 @@
         }
     }
 
-    // Prevent Text Copying by rendering on canvas or SVG (example approach for simple text)
-    const textContent = "Sample book content";  // Replace with actual book content
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    ctx.font = '16px Arial';
-    ctx.fillText(textContent, 10, 50);
-    document.body.appendChild(canvas);
-
+    // Prevent Printing and Downloading (Browser-based)
+    window.onbeforeprint = function() {
+        alert("Printing is disabled.");
+        return false;
+    };
 </script>
 {% endblock %}
