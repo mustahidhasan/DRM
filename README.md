@@ -1,6 +1,12 @@
 # DRM
 Its a site for book management 
 
+in the settings.py update these below before production
+
+REDIRECT_SITE_URL_ROOT="http://localhost:8000"
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8000',
+]
 
 test cards
 Field | Value
