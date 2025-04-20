@@ -16,7 +16,6 @@
 
     // Initialize PDF.js
     pdfjsLib.getDocument(url).promise.then(function(pdf) {
-        // Get the total number of pages in the PDF
         const totalPages = pdf.numPages;
         
         // Render each page
@@ -36,6 +35,12 @@
                     viewport: viewport
                 });
 
+                // Add dynamic watermark
+                const userId = localStorage.getItem('userId');
+                context.font = "30px Arial";
+                context.fillStyle = "rgba(255, 0, 0, 0.5)";
+                context.fillText(`User ID: ${userId}`, 50, 50);
+
                 // Append the canvas to the container
                 document.getElementById('pdf-container').appendChild(canvas);
             }).catch(function(error) {
@@ -46,10 +51,14 @@
         console.error("Error loading PDF: ", error);
     });
 
-    // Disable right-click, print-screen, and developer tools
+    // Security: Disable right-click, print-screen, and developer tools
     document.addEventListener('contextmenu', (e) => e.preventDefault());  // Disable right-click
 
-    // Disable Developer Tools (this can be bypassed but acts as a deterrent)
+    // Prevent text selection and copying
+    document.body.style.userSelect = "none";
+    document.body.style.webkitUserSelect = "none";
+
+    // Disable Developer Tools (can be bypassed but deterrent)
     (function() {
         const devtools = /./;
         devtools.toString = function () {
@@ -58,26 +67,15 @@
         console.log(devtools);
     })();
 
-    // Disable text selection and copying on the page
-    document.body.style.userSelect = "none";
-    document.body.style.webkitUserSelect = "none";
+    // Disable printing & downloads (via browser events)
+    window.onbeforeprint = function() {
+        alert("Printing is disabled.");
+        return false;
+    };
 
-    // Detect screen recording tools (basic detection, needs refinement for production)
-    setInterval(function() {
-        try {
-            if (window.screenTop !== 0 || window.screenLeft !== 0) {
-                alert("Screen recording detected. Your session will be terminated.");
-                window.location.href = "/logout";  // Redirect to logout
-            }
-        } catch (e) {
-            console.log("Screen recording detection error: " + e);
-        }
-    }, 5000);
+    // Device restrictions: Max 1 device per account
+    let deviceToken = localStorage.getItem('deviceToken');
 
-    // Device session management and restrictions
-    let deviceToken = localStorage.getItem('deviceToken'); // Get device token from storage or session
-
-    // Check if there is more than one active session
     fetch('/check-device-session', {
         method: 'POST',
         headers: {
@@ -100,8 +98,6 @@
             window.location.href = "/logout";
         }, 900000);  // 15 minutes
     }
-
-    // Reset timer on user actions
     document.addEventListener("mousemove", resetTimer);
     document.addEventListener("keypress", resetTimer);
 
@@ -110,7 +106,7 @@
     const token = localStorage.getItem('jwt');
     if (token) {
         const decodedToken = JSON.parse(atob(token.split('.')[1]));
-        const expiration = decodedToken.exp * 1000;  // Token expiry time in milliseconds
+        const expiration = decodedToken.exp * 1000;
         const currentTime = Date.now();
 
         if (currentTime >= expiration) {
@@ -119,10 +115,69 @@
         }
     }
 
-    // Prevent Printing and Downloading (Browser-based)
-    window.onbeforeprint = function() {
-        alert("Printing is disabled.");
-        return false;
-    };
+    // Anti-piracy: Detecting Screen Recording
+    let isRecording = false;
+
+    function checkScreenRecording() {
+        try {
+            // Use visibilitychange to detect if the page loses focus (when screen recording might start)
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    console.log("Page is no longer visible.");
+                    isRecording = true; 
+                    alert("Screen recording detected. Your session will be terminated.");
+                    window.location.href = "/logout";  // Redirect to logout
+                } else {
+                    console.log("Page is visible.");
+                    isRecording = false;
+                }
+            });
+
+            // Checking screen capture permission (works in some modern browsers)
+            navigator.permissions.query({ name: 'screen-writable' }).then(permissionStatus => {
+                if (permissionStatus.state === 'granted') {
+                    isRecording = true;
+                    alert("Screen recording detected. Your session will be terminated.");
+                    window.location.href = "/logout";  // Redirect to logout
+                }
+            });
+        } catch (e) {
+            console.log("Screen recording detection error: " + e);
+        }
+    }
+
+    setInterval(checkScreenRecording, 5000);  // Run the check every 5 seconds
+
+    // Anti-piracy: Detecting Automation Scripts (Selenium, Puppeteer)
+    function detectAutomationScripts() {
+        const userAgent = navigator.userAgent;
+        const automationIndicators = ["Headless", "Selenium", "Puppeteer"];
+        for (let indicator of automationIndicators) {
+            if (userAgent.includes(indicator)) {
+                alert("Automation script detected. Your session will be terminated.");
+                window.location.href = "/logout";  // Redirect to logout
+                return;
+            }
+        }
+    }
+    detectAutomationScripts();
+
+    // Violation penalties (simplified example)
+    let violationCount = localStorage.getItem('violationCount') || 0;
+
+    function handleViolation() {
+        violationCount++;
+        localStorage.setItem('violationCount', violationCount);
+
+        if (violationCount === 1) {
+            alert("Warning: Violating terms. Forced logout.");
+        } else if (violationCount === 2) {
+            alert("Second violation: Temporary suspension.");
+        } else if (violationCount === 3) {
+            alert("Third violation: Account terminated.");
+            // Optional: Make an API call to deactivate the account
+            window.location.href = "/account-terminated";  // Redirect to termination page
+        }
+    }
 </script>
 {% endblock %}
