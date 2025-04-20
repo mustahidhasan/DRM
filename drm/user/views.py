@@ -318,12 +318,17 @@ def books_view(request):
         "uploaded_books": uploaded_books,
     })
 
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, render
+from .models import UploadedFile, Order
+
 @login_required
 def view_book(request, book_id):
     book = get_object_or_404(UploadedFile, id=book_id)
 
-    # Optional: verify user has permission to access this book
-    if not Order.objects.filter(user=request.user, uploaded_files=book).exists():
+    # Check if any order exists with the logged-in user's email and the book
+    if not Order.objects.filter(customer_email=request.user.email, uploaded_files=book).exists():
         return HttpResponseForbidden("You don't have access to this book.")
 
     return render(request, "view_book.html", {"book": book})

@@ -172,3 +172,4 @@ SIMPLE_JWT = {
 
 REDIRECT_SITE_URL_ROOT="http://localhost:8000"
 PAYMENT_AUTH_TOKEN="FLWSECK_TEST-a4172b71298ffebbdb50b21d8f45c3d3-X"
+X_FRAME_OPTIONS = 'ALLOWALL'  # Allow iframe embedding in all cases
