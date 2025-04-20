@@ -13,7 +13,7 @@
 
     <div class="mt-5">
         <h5>Customer Details</h5>
-        <form method="post" action="{% url 'checkout' %}">
+        <form method="post" action="{% url 'checkout' %}" onsubmit="return submitCartToBackend();">
             {% csrf_token %}
             <div class="mb-3">
                 <label for="name" class="form-label">Full Name</label>
@@ -28,6 +28,7 @@
                 <input type="text" class="form-control" id="phone" name="phone" value="" placeholder="Please include the country code" required>
             </div>
             <input type="hidden" id="amount" name="amount">
+            <input type="hidden" id="cart_data" name="cart_data"> <!-- Hidden cart JSON -->
             <button type="submit" class="btn btn-success">Confirm Order</button>
         </form>
         
@@ -66,6 +67,12 @@
         if (amountInput) {
             amountInput.value = total.toFixed(2);
         }
+    }
+
+    function submitCartToBackend() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        document.getElementById('cart_data').value = JSON.stringify(cart);
+        return true;
     }
 
     document.addEventListener('DOMContentLoaded', loadCheckoutCart);

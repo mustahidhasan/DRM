@@ -61,11 +61,21 @@ def checkout_view(request):
         full_name = request.POST.get('name')
         email = request.POST.get('email')
         phone = request.POST.get('phone')
-        request.session["customer_phone"] = phone
         amount = request.POST.get('amount')
         transaction_uuid = uuid.uuid4()
 
-        tx_ref = f"TX-{transaction_uuid}-{email}"  # fallback to email if user is None
+        # Save phone number and cart data to session
+        request.session["customer_phone"] = phone
+
+        cart_json = request.POST.get("cart_data", "[]")
+        try:
+            cart = json.loads(cart_json)
+        except json.JSONDecodeError:
+            cart = []
+        request.session["cart"] = cart
+        request.session.modified = True
+
+        tx_ref = f"TX-{transaction_uuid}-{email}"
         redirect_url = f"{REDIRECT_SITE_URL_ROOT}/payment-complete/"
 
         headers = {
@@ -116,6 +126,10 @@ def checkout_view(request):
 def payment_complete_view(request):
     transaction_id = request.GET.get('transaction_id', "")
     customer_mobile = request.session.pop("customer_phone", "")
+    cart_data = request.session.pop("cart", [])
+
+    # ✅ Extract uploaded_file_ids from cart
+    uploaded_file_ids = [item.get("id") for item in cart_data if "id" in item]
 
     if not transaction_id:
         return render(request, "payment.html", {
@@ -133,13 +147,11 @@ def payment_complete_view(request):
 
     if res_data.get("status") == "success" and res_data["data"]["status"] == "successful":
         payment_data = res_data["data"]
-
-        # Determine if user is authenticated
         user = request.user if request.user.is_authenticated else None
 
-        # Save to DB
-        Order.objects.create(
-            user=user,  # This can now safely be None
+        # Create order
+        order = Order.objects.create(
+            user=user,
             transaction_id=payment_data["id"],
             tx_ref=payment_data["tx_ref"],
             amount=payment_data["amount"],
@@ -148,11 +160,13 @@ def payment_complete_view(request):
             payment_status=payment_data["status"],
             customer_email=payment_data["customer"]["email"],
             customer_mobile=customer_mobile,
-            customer_name=payment_data["customer"]["name"]
+            customer_name=payment_data["customer"]["name"],
         )
-        if "cart" in request.session:
-            del request.session["cart"]
-            request.session.modified = True  # Ensure changes are saved
+
+        # ✅ Attach uploaded files from cart
+        if uploaded_file_ids:
+            uploaded_files = UploadedFile.objects.filter(id__in=uploaded_file_ids)
+            order.uploaded_files.set(uploaded_files)
 
         return render(request, "payment.html", {
             "success": True,
@@ -165,7 +179,6 @@ def payment_complete_view(request):
             "success": False,
             "error": res_data.get("message", "Transaction verification failed.")
         })
-
 
 def logout_user(request):
     logout(request)
