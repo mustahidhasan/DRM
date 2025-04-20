@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<iframe src="http://127.0.0.1:8000{{ book.file.url }}" width="100%" height="800px" style="border:none;">
+<iframe id="pdfReader" src="http://127.0.0.1:8000{{ book.file.url }}" width="100%" height="800px" style="border:none;" oncontextmenu="return false;" onkeydown="return false;" onmousedown="return false;">
     This browser does not support PDFs. Please download the file instead.
 </iframe>
 {% endblock %}
@@ -8,4 +8,87 @@
 {% block scripts %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
+<script>
+    // Disable right-click, print-screen, and developer tools
+    document.addEventListener('contextmenu', (e) => e.preventDefault());  // Disable right-click
+
+    // Disable Developer Tools (this can be bypassed but acts as a deterrent)
+    (function() {
+        const devtools = /./;
+        devtools.toString = function () {
+            alert("Developer tools are disabled.");
+        };
+        console.log(devtools);
+    })();
+
+    // Disable text selection and copying on the page
+    document.body.style.userSelect = "none";
+    document.body.style.webkitUserSelect = "none";
+
+    // Detect screen recording tools (basic detection, needs refinement for production)
+    setInterval(function() {
+        try {
+            if (window.screenTop !== 0 || window.screenLeft !== 0) {
+                alert("Screen recording detected. Your session will be terminated.");
+                window.location.href = "/logout";  // Redirect to logout
+            }
+        } catch (e) {
+            console.log("Screen recording detection error: " + e);
+        }
+    }, 5000);
+
+    // Device session management and restrictions
+    let deviceToken = localStorage.getItem('deviceToken'); // Get device token from storage or session
+
+    // Check if there is more than one active session
+    fetch('/check-device-session', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${deviceToken}`
+        },
+        body: JSON.stringify({ action: 'check' })
+    }).then(response => response.json()).then(data => {
+        if (data.isSecondDevice) {
+            alert("This book is already active on another device. Please purchase it again.");
+            window.location.href = '/purchase';
+        }
+    });
+
+    // Auto logout after 15 minutes of inactivity
+    let inactivityTimer;
+    function resetTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            alert("Session expired due to inactivity.");
+            window.location.href = "/logout";
+        }, 900000);  // 15 minutes
+    }
+
+    // Reset timer on user actions
+    document.addEventListener("mousemove", resetTimer);
+    document.addEventListener("keypress", resetTimer);
+
+    // JWT Token Expiry Check
+    const jwtExpiryTime = 90 * 60 * 1000;  // 90 minutes
+    const token = localStorage.getItem('jwt');
+    if (token) {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const expiration = decodedToken.exp * 1000;  // Token expiry time in milliseconds
+        const currentTime = Date.now();
+
+        if (currentTime >= expiration) {
+            alert("Session expired. Please log in again.");
+            window.location.href = '/login';
+        }
+    }
+
+    // Prevent Text Copying by rendering on canvas or SVG (example approach for simple text)
+    const textContent = "Sample book content";  // Replace with actual book content
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.font = '16px Arial';
+    ctx.fillText(textContent, 10, 50);
+    document.body.appendChild(canvas);
+
+</script>
 {% endblock %}
