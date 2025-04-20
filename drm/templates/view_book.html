@@ -1,4 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
 <iframe src="http://127.0.0.1:8000{{ book.file.url }}" width="100%" height="800px" style="border:none;">
     This browser does not support PDFs. Please download the file instead.
-  </iframe>
-  
+</iframe>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+{% endblock %}
