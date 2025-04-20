@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "user",
-    # "corsheaders",
+    "corsheaders",
 ]
 JAZZMIN_SETTINGS = {
     "site_title": "DRM Admin",
@@ -58,7 +58,7 @@ JAZZMIN_SETTINGS = {
 LOGIN_REDIRECT_URL = '/admin/'
 
 MIDDLEWARE = [
-    # "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -172,3 +172,8 @@ SIMPLE_JWT = {
 
 REDIRECT_SITE_URL_ROOT="http://localhost:8000"
 PAYMENT_AUTH_TOKEN="FLWSECK_TEST-a4172b71298ffebbdb50b21d8f45c3d3-X"
+X_FRAME_OPTIONS = 'ALLOWALL'  # Allow iframe embedding in all cases
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8000',
+]
+CORS_ALLOW_ALL_ORIGINS = True

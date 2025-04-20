@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Your Purchased Books</h2>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {% for book in uploaded_books %}
+    <div class="row">
+
+        <!-- Book Info -->
+        <div class="col-8">
+            <h3 class="text-lg font-semibold mb-1 text-gray-800">{{ book.book_name }}</h3>
+            <p class="text-gray-600 text-sm mb-2">{{ book.book_description }}</p>
+            <p class="text-xs text-gray-400">Uploaded: {{ book.uploaded_at|date:"Y-m-d" }}</p>
+        </div>
+        <!-- View button on top-right -->
+        <div class="col-4">
+            <a href="{% url 'view_book' book.id %}"
+                class="btn btn-success">
+                View
+            </a>
+        </div>
+     
+    </div>
+    <hr>
+  {% empty %}
+    <p class="text-gray-600">You haven't purchased any books yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% block content %}
+<div id="pdf-container" style="width: 100%; height: 100vh; display: flex; flex-direction: column; align-items: center;">
+    <!-- Container for the pages -->
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+
+<script>
+    const url = 'http://127.0.0.1:8000{{ book.file.url }}'; // Ensure this is correct
+
+    // Initialize PDF.js
+    pdfjsLib.getDocument(url).promise.then(function(pdf) {
+        const totalPages = pdf.numPages;
+        
+        // Render each page
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+            pdf.getPage(pageNum).then(function(page) {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                const viewport = page.getViewport({ scale: 1.5 });
+
+                // Set canvas size to match the page's viewport
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                // Render PDF page onto canvas
+                page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                });
+
+                // Add dynamic watermark
+                const userId = localStorage.getItem('userId');
+                context.font = "30px Arial";
+                context.fillStyle = "rgba(255, 0, 0, 0.5)";
+                context.fillText(`User ID: ${userId}`, 50, 50);  // Watermark
+
+                // Append the canvas to the container
+                document.getElementById('pdf-container').appendChild(canvas);
+            }).catch(function(error) {
+                console.error("Error rendering page: ", error);
+            });
+        }
+    }).catch(function(error) {
+        console.error("Error loading PDF: ", error);
+    });
+
+    // Disable right-click, text selection, and developer tools
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.body.style.userSelect = "none";
+    document.body.style.webkitUserSelect = "none";
+
+    // Disable print and downloads (Browser-based)
+    window.onbeforeprint = function() {
+        alert("Printing is disabled.");
+        return false;
+    };
+
+    // Screen Recording Detection (basic)
+    function detectRecording() {
+        // Listen for visibility change, which might indicate a screen recorder is capturing
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                alert("Screen recording detected. Your session will be terminated.");
+                window.location.href = "/logout";  // Redirect to logout
+            }
+        });
+
+        // Use WebRTC to check for screen sharing (indirect method)
+        navigator.permissions.query({ name: 'screen-writable' }).then(permissionStatus => {
+            if (permissionStatus.state === 'granted') {
+                alert("Screen recording detected. Your session will be terminated.");
+                window.location.href = "/logout";  // Redirect to logout
+            }
+        });
+    }
+
+    detectRecording();  // Run the detection
+
+    // Device restrictions: Max 1 device per account
+    let deviceToken = localStorage.getItem('deviceToken');
+
+    fetch('/check-device-session', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${deviceToken}`
+        },
+        body: JSON.stringify({ action: 'check' })
+    }).then(response => response.json()).then(data => {
+        if (data.isSecondDevice) {
+            alert("This book is already active on another device. Please purchase it again.");
+            window.location.href = '/purchase';
+        }
+    });
+
+    // Auto logout after 15 minutes of inactivity
+    let inactivityTimer;
+    function resetTimer() {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(() => {
+            alert("Session expired due to inactivity.");
+            window.location.href = "/logout";
+        }, 900000);  // 15 minutes
+    }
+    document.addEventListener("mousemove", resetTimer);
+    document.addEventListener("keypress", resetTimer);
+
+    // JWT Token Expiry Check
+    const jwtExpiryTime = 90 * 60 * 1000;  // 90 minutes
+    const token = localStorage.getItem('jwt');
+    if (token) {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const expiration = decodedToken.exp * 1000;
+        const currentTime = Date.now();
+
+        if (currentTime >= expiration) {
+            alert("Session expired. Please log in again.");
+            window.location.href = '/login';
+        }
+    }
+
+    // Anti-piracy: Detecting Automation Scripts (Selenium, Puppeteer)
+    function detectAutomationScripts() {
+        const userAgent = navigator.userAgent;
+        const automationIndicators = ["Headless", "Selenium", "Puppeteer"];
+        for (let indicator of automationIndicators) {
+            if (userAgent.includes(indicator)) {
+                alert("Automation script detected. Your session will be terminated.");
+                window.location.href = "/logout";  // Redirect to logout
+                return;
+            }
+        }
+    }
+    detectAutomationScripts();
+
+    // Watermark detection penalties (simplified example)
+    let violationCount = localStorage.getItem('violationCount') || 0;
+
+    function handleViolation() {
+        violationCount++;
+        localStorage.setItem('violationCount', violationCount);
+
+        if (violationCount === 1) {
+            alert("Warning: Violating terms. Forced logout.");
+        } else if (violationCount === 2) {
+            alert("Second violation: Temporary suspension.");
+        } else if (violationCount === 3) {
+            alert("Third violation: Account terminated.");
+            // Optional: Make an API call to deactivate the account
+            window.location.href = "/account-terminated";  // Redirect to termination page
+        }
+    }
+</script>
+{% endblock %}

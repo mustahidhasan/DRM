@@ -26,7 +26,12 @@
 
 <!-- 📚 Book List -->
 <div class="container py-4">
-    <h2 class="mb-4">Available Books</h2>
+    <h2 class="mb-4">
+        Available Books 
+        {% if not user.is_authenticated %}
+        <span style="font-size:20px; color:rgb(204, 13, 13)">(To read the books please login)</span>
+        {% endif %}
+    </h2>
     <div class="row row-cols-1 row-cols-md-3 g-4">
         {% for book in books %}
         <div class="col">

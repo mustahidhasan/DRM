@@ -185,6 +185,6 @@ from .models import Order
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "transaction_id", "amount", "currency", "payment_status", "created_at")
-    search_fields = ("tx_ref", "transaction_id", "customer_email")
+    list_display = ("transaction_id","customer_mobile", "customer_email", "user", "amount", "currency", "payment_status", "created_at")
+    search_fields = ("tx_ref", "transaction_id", "customer_email"), "customer_mobile"
     list_filter = ("payment_status", "currency", "created_at")

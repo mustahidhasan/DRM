@@ -14,6 +14,8 @@ class CustomUser(AbstractUser):
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     publisher = models.ForeignKey('self', related_name='authors', on_delete=models.SET_NULL, null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+
 
     def save(self, *args, **kwargs):
         if not self.pk:
@@ -50,7 +52,13 @@ class UploadedFile(models.Model):
         return self.book_name or self.file.name
 
 class Order(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name="orders", 
+        null=True,  # Allow guests (non-logged-in users)
+        blank=True
+    )
     transaction_id = models.CharField(max_length=255, unique=True)
     tx_ref = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -59,7 +67,15 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=50)
     customer_email = models.EmailField()
     customer_name = models.CharField(max_length=255)
+    customer_mobile = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Use ManyToManyField to associate multiple uploaded files
+    uploaded_files = models.ManyToManyField(
+        UploadedFile, 
+        related_name='orders', 
+        blank=True  # Allow orders with no uploaded files initially
+    )
 
     def __str__(self):
         return f"Order #{self.id} - {self.tx_ref}"

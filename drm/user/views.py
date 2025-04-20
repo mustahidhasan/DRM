@@ -2,7 +2,8 @@ UPLOAD_DIR = "uploaded_files/"  # Directory to save uploaded files
 
 
 import os
-from django.shortcuts import render, redirect
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
@@ -39,6 +40,8 @@ from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from drm.settings import REDIRECT_SITE_URL_ROOT, PAYMENT_AUTH_TOKEN
+from django.contrib.auth.models import AnonymousUser
+from django.utils import timezone
 
 # Use the custom user model
 User = get_user_model()
@@ -52,17 +55,28 @@ def home(request):
 
 
 @csrf_exempt
-@login_required(login_url='login')
 def checkout_view(request):
-    user = request.user
+    user = request.user if not isinstance(request.user, AnonymousUser) else None
 
     if request.method == "POST":
         full_name = request.POST.get('name')
         email = request.POST.get('email')
+        phone = request.POST.get('phone')
         amount = request.POST.get('amount')
         transaction_uuid = uuid.uuid4()
 
-        tx_ref = f"TX-{transaction_uuid}-{user.email}"
+        # Save phone number and cart data to session
+        request.session["customer_phone"] = phone
+
+        cart_json = request.POST.get("cart_data", "[]")
+        try:
+            cart = json.loads(cart_json)
+        except json.JSONDecodeError:
+            cart = []
+        request.session["cart"] = cart
+        request.session.modified = True
+
+        tx_ref = f"TX-{transaction_uuid}-{email}"
         redirect_url = f"{REDIRECT_SITE_URL_ROOT}/payment-complete/"
 
         headers = {
@@ -97,16 +111,26 @@ def checkout_view(request):
                 "error": res_data.get("message", "Something went wrong.")
             })
 
-    data = {
-        'full_name': user.get_full_name(),
-        'email': user.email,
-    }
-    return render(request, 'checkout.html', {"data": data})
+    # Fallback if user is not authenticated
+    full_name = user.get_full_name() if user else ""
+    email = user.email if user else ""
+
+    return render(request, 'checkout.html', {
+        "data": {
+            "full_name": full_name,
+            "email": email,
+        }
+    })
+
 
 @csrf_exempt
-@login_required(login_url='login')
 def payment_complete_view(request):
-    transaction_id = request.GET.get('transaction_id')
+    transaction_id = request.GET.get('transaction_id', "")
+    customer_mobile = request.session.pop("customer_phone", "")
+    cart_data = request.session.pop("cart", [])
+
+    # ✅ Extract uploaded_file_ids from cart
+    uploaded_file_ids = [item.get("id") for item in cart_data if "id" in item]
 
     if not transaction_id:
         return render(request, "payment.html", {
@@ -124,10 +148,11 @@ def payment_complete_view(request):
 
     if res_data.get("status") == "success" and res_data["data"]["status"] == "successful":
         payment_data = res_data["data"]
+        user = request.user if request.user.is_authenticated else None
 
-        # Save to DB
-        Order.objects.create(
-            user=request.user,
+        # Create order
+        order = Order.objects.create(
+            user=user,
             transaction_id=payment_data["id"],
             tx_ref=payment_data["tx_ref"],
             amount=payment_data["amount"],
@@ -135,21 +160,26 @@ def payment_complete_view(request):
             payment_type=payment_data.get("payment_type", ""),
             payment_status=payment_data["status"],
             customer_email=payment_data["customer"]["email"],
-            customer_name=payment_data["customer"]["name"]
+            customer_mobile=customer_mobile,
+            customer_name=payment_data["customer"]["name"],
         )
-        if "cart" in request.session:
-            del request.session["cart"]
+
+        # ✅ Attach uploaded files from cart
+        if uploaded_file_ids:
+            uploaded_files = UploadedFile.objects.filter(id__in=uploaded_file_ids)
+            order.uploaded_files.set(uploaded_files)
 
         return render(request, "payment.html", {
             "success": True,
-            "payment": res_data["data"]
+            "payment": res_data["data"],
+            "customer_phone": customer_mobile,
+            "created_at": timezone.now().strftime("%Y-%m-%d %H:%M:%S")
         })
     else:
         return render(request, "payment.html", {
             "success": False,
             "error": res_data.get("message", "Transaction verification failed.")
         })
-
 
 def logout_user(request):
     logout(request)
@@ -249,5 +279,56 @@ def login_view(request):
 
 
 
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from .forms import CustomerProfileForm
+
+@login_required
 def profile_view(request):
-    return render(request, "profile.html")
+    user = request.user
+    if user.role != "customer":
+        return redirect('home')  # Optional: restrict to customers
+
+    if request.method == "POST":
+        form = CustomerProfileForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')
+    else:
+        form = CustomerProfileForm(instance=user)
+
+    return render(request, "profile.html", {
+        "form": form,
+        "user_data": user
+    })
+
+
+@login_required(login_url='login')
+def books_view(request):
+    user = request.user
+    email = user.email
+
+    # Get all orders associated with the user's email
+    orders = Order.objects.filter(customer_email=email)
+
+    # Collect unique uploaded files from those orders
+    uploaded_books = UploadedFile.objects.filter(orders__in=orders).distinct()
+
+    return render(request, "books.html", {
+        "uploaded_books": uploaded_books,
+    })
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, render
+from .models import UploadedFile, Order
+
+@login_required
+def view_book(request, book_id):
+    book = get_object_or_404(UploadedFile, id=book_id)
+
+    # Check if any order exists with the logged-in user's email and the book
+    if not Order.objects.filter(customer_email=request.user.email, uploaded_files=book).exists():
+        return HttpResponseForbidden("You don't have access to this book.")
+
+    return render(request, "view_book.html", {"book": book})
